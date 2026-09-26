@@ -69,13 +69,13 @@ graph TB
 
 Se configuraron 3 interfaces físicas: WAN (port1, DHCP), SERVIDORES (port2, `172.23.16.129/28`) y USUARIOS (port3, `172.23.16.1/25`).
 
-![Interfaces del FortiGate](imagenes/02_interfaces.png)
+
 
 ### 1.2 Ruta por defecto
 
 Se configuró una ruta estática `0.0.0.0/0` saliendo por la interfaz WAN hacia el gateway de la red del hogar.
 
-![Ruta por defecto](imagenes/03_ruta_default.png)
+
 
 ### 1.3 Políticas de Firewall
 
