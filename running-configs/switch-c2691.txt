@@ -1,0 +1,65 @@
+! Running-config del Switch C2691 (con módulo NM-16ESW)
+! Laboratorio de Seguridad de Redes - Abdul Djalo - 2023-1600
+!
+vlan database
+ vlan 10 name USUARIOS
+ vlan 20 name SERVIDORES
+exit
+!
+interface FastEthernet1/0
+ switchport mode access
+ switchport access vlan 20
+ spanning-tree portfast
+!
+interface FastEthernet1/1
+ switchport mode access
+ switchport access vlan 10
+!
+interface FastEthernet1/2
+ switchport mode access
+ switchport access vlan 20
+ spanning-tree portfast
+! Puerto conectado a WEB-Server
+!
+interface FastEthernet1/3
+ switchport mode access
+ switchport access vlan 20
+ spanning-tree portfast
+! Puerto conectado a DB-Server
+!
+interface FastEthernet1/4
+ switchport mode access
+ switchport access vlan 10
+ spanning-tree portfast
+! Puerto conectado al nodo Atacante
+!
+interface FastEthernet1/5
+ switchport mode access
+ switchport access vlan 10
+ spanning-tree portfast
+! Puerto conectado a PC-Usuario
+!
+interface range FastEthernet1/6 - 15
+ shutdown
+! Puertos sin uso deshabilitados como medida de seguridad basica de red
+!
+end
+write memory
+
+! NOTA TECNICA:
+! El modulo NM-16ESW emulado en este entorno (Dynamips) presento las
+! siguientes limitaciones documentadas durante las pruebas:
+!   - No soporta el comando "switchport port-security" (ni sus subcomandos).
+!   - No soporta "spanning-tree bpduguard enable".
+!   - No soporta "ip access-group X out" en puertos de switch (Error:
+!     "IP ACL configuration on 'out' direction is not supported").
+!   - Requiere que todas las ACEs de una misma ACL tengan el mismo "field
+!     set" (mascara de comparacion), o rechaza el comando con:
+!     "The field sets of all the ACEs in an ACL on Ethernet Switch
+!     interface should match."
+!
+! Como alternativa valida de seguridad, la restriccion de que WEB-Server
+! solo puede hablar con DB-Server en el puerto 3306 se implemento
+! exitosamente mediante IPTABLES directamente en el DB-Server (ver
+! scripts/db-server-setup.sh), una tecnica de "defensa en profundidad"
+! a nivel de host que fue verificada funcionando correctamente.

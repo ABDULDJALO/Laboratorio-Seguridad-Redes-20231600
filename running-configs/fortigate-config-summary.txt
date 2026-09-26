@@ -1,0 +1,150 @@
+! Resumen de configuracion del FortiGate 7.6.2 (configurado 100% por GUI)
+! Laboratorio de Seguridad de Redes - Abdul Djalo - 2023-1600
+
+=== INTERFACES ===
+config system interface
+    edit "port1"
+        set alias "WAN"
+        set mode dhcp
+        set allowaccess https ssh ping
+    next
+    edit "port2"
+        set alias "SERVIDORES"
+        set mode static
+        set ip 172.23.16.129 255.255.255.240
+        set allowaccess ping
+    next
+    edit "port3"
+        set alias "USUARIOS"
+        set mode static
+        set ip 172.23.16.1 255.255.255.128
+        set allowaccess https ssh ping
+    next
+end
+
+=== DHCP SERVER (USUARIOS / VLAN10) ===
+config system dhcp server
+    edit 1
+        set interface "port3"
+        set default-gateway 172.23.16.1
+        set netmask 255.255.255.128
+        config ip-range
+            edit 1
+                set start-ip 172.23.16.10
+                set end-ip 172.23.16.120
+            next
+        end
+    next
+end
+
+=== RUTA POR DEFECTO ===
+config router static
+    edit 1
+        set gateway <gateway-red-local>
+        set device "port1"
+    next
+end
+
+=== DIRECCIONES ===
+config firewall address
+    edit "WEB-Server"
+        set subnet 172.23.16.130 255.255.255.255
+        set associated-interface "port2"
+    next
+    edit "DB-Server"
+        set subnet 172.23.16.131 255.255.255.255
+        set associated-interface "port2"
+    next
+end
+
+=== POLITICAS DE FIREWALL ===
+config firewall policy
+    edit 1
+        set name "Usuarios-a-WebServer"
+        set srcintf "port3"
+        set dstintf "port2"
+        set srcaddr "all"
+        set dstaddr "WEB-Server"
+        set action accept
+        set schedule "always"
+        set service "HTTPS"
+        set utm-status enable
+        set ssl-ssh-profile "deep-inspection"
+        set ips-sensor "default"
+        set application-list "default"
+        set file-filter-profile "default"
+        set logtraffic all
+        set nat enable
+    next
+    edit 2
+        set name "Bloqueo-Usuarios-a-DB"
+        set srcintf "port3"
+        set dstintf "port2"
+        set srcaddr "all"
+        set dstaddr "DB-Server"
+        set action deny
+        set schedule "always"
+        set service "ALL"
+        set logtraffic all
+    next
+    edit 3
+        set name "Servidores-a-Internet"
+        set srcintf "port2"
+        set dstintf "port1"
+        set srcaddr "all"
+        set dstaddr "all"
+        set action accept
+        set schedule "always"
+        set service "ALL"
+        set nat enable
+    next
+end
+
+=== PERFIL IPS (SQL INJECTION + CUARENTENA) ===
+config ips sensor
+    edit "default"
+        set comment "Prevent critical attacks."
+        config entries
+            edit 1
+                set status default
+            next
+            edit 2
+                set status default
+            next
+            edit 3
+                set severity high
+            next
+            edit 4
+                set filter "SQL"    ! 188 firmas coincidentes con SQL Injection
+                set action block
+                set quarantine attacker
+                set quarantine-expiry 1h
+                set status enable
+            next
+        end
+    next
+end
+
+=== DOS POLICY (RATE LIMITING) ===
+config firewall DoS-policy
+    edit 1
+        set name "Anti-DoS-WebServer"
+        set interface "port3"
+        set srcaddr "all"
+        set dstaddr "WEB-Server"
+        set service "HTTPS"
+        config anomaly
+            edit "tcp_syn_flood"
+                set status enable
+                set action block
+                set threshold 100
+            next
+        end
+    next
+end
+
+! NOTA: la licencia de evaluacion de FortiGate 7.6.2 (activada gratis con
+! cuenta FortiCare) limita el laboratorio a un MAXIMO de 3 interfaces
+! fisicas, 3 politicas de firewall y 3 rutas en total. La topologia y
+! las politicas de este laboratorio fueron diseñadas deliberadamente
+! para caber dentro de ese limite.
